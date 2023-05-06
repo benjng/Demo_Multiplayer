@@ -2,10 +2,15 @@ using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Netcode;
+using Unity.Multiplayer;
 using UnityEngine;
+using Unity.Multiplayer.Samples.Utilities.ClientAuthority;
 
 public class PlayerNetwork : NetworkBehaviour
 {
+    [SerializeField] private Transform bulletTransform;
+    private Transform spawnedObjectTransform;
+
     // Init a randomData
     private NetworkVariable<MyCustomData> randomNumber = new NetworkVariable<MyCustomData>(
         new MyCustomData{
@@ -39,17 +44,26 @@ public class PlayerNetwork : NetworkBehaviour
 
     void Update()
     {
-        // Avoid controlling other "Player" prefabs that doesn't belong to this script
+        // Avoid controlling other "Player" prefabs that doesn't belong to this script 
+        // (e.g. Client1 is not the owner of Client2's character)
         if (!IsOwner) return; 
-        if (Input.GetKeyDown(KeyCode.Alpha1)){
-            // TestServerRpc(new ServerRpcParams());
+
+        if (Input.GetKeyDown(KeyCode.Alpha1)){ // SERVER ACTS
+            TestServerRpc(new ServerRpcParams());
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2)){
+        if (Input.GetKeyDown(KeyCode.Alpha2)){ // CLIENT ACTS
             TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
         }
         // if (Input.GetKeyDown(KeyCode.Alpha3)){
         //     RandomizeInt();
         // }
+        if (Input.GetKeyDown(KeyCode.T)){
+            SpawnBulletOnServerServerRpc(new ServerRpcParams());
+        }
+        if (Input.GetKeyDown(KeyCode.R)){
+            Destroy(spawnedObjectTransform.gameObject); // Destroy on both local/network
+        }
+
         Movement();
     }
 
@@ -73,9 +87,22 @@ public class PlayerNetwork : NetworkBehaviour
         transform.position += moveDir * moveSpeed * Time.deltaTime;
     }
 
+
+    // ===================================================================
+
+    [ServerRpc]
+    void SpawnBulletOnServerServerRpc(ServerRpcParams serverRpcParams){
+        spawnedObjectTransform = Instantiate(bulletTransform); // Shows on local only
+        spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true); // Spawn over network
+        spawnedObjectTransform.position = gameObject.transform.position;
+        if (serverRpcParams.Receive.SenderClientId == 0){
+            spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
+        }
+    }
+
+    // ===================================================================
     /* ServerRPC:
-        1. Runs only on Server
-        2. Calls only from Client
+        1. Call from Client/Host, Run on Server
         2. Must end with suffix "ServerRpc"
         3. ServerRpc must be defined inside NetworkBehaviour
         4. Must be attached to a GameObject within a Network Object
@@ -83,13 +110,12 @@ public class PlayerNetwork : NetworkBehaviour
     */
     [ServerRpc]
     private void TestServerRpc(ServerRpcParams serverRpcParams){ 
-        Debug.Log("TestServerRpc " + OwnerClientId + "; " + serverRpcParams.Receive.SenderClientId);
+        Debug.Log("Calling TestServerRpc by: " + OwnerClientId + "; Sent by: " + serverRpcParams.Receive.SenderClientId);
     }
 
     /* ClientRPC:
-        1. Run only on Client
-        2. Calls only from Server
-        3. Use ClientRPC when Server -> One/Multiple Clients
+        1. Call from Server, Run on Client(s)
+        2. Use ClientRPC when Server -> One/Multiple Clients
     */
     [ClientRpc]
     private void TestClientRpc(ClientRpcParams clientRpcParams){ 
