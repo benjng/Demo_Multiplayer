@@ -41,13 +41,15 @@ public class PlayerNetwork : NetworkBehaviour
     {
         // Avoid controlling other "Player" prefabs that doesn't belong to this script
         if (!IsOwner) return; 
-        if (Input.GetKeyDown(KeyCode.T)){
+        if (Input.GetKeyDown(KeyCode.Alpha1)){
             // TestServerRpc(new ServerRpcParams());
-
-            // TargetClientIds: Client(s) to send the data to
-            TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
-            // RandomizeInt();
         }
+        if (Input.GetKeyDown(KeyCode.Alpha2)){
+            TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
+        }
+        // if (Input.GetKeyDown(KeyCode.Alpha3)){
+        //     RandomizeInt();
+        // }
         Movement();
     }
 
@@ -72,7 +74,8 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
     /* ServerRPC:
-        1. Runs only on Server, not Client
+        1. Runs only on Server
+        2. Calls only from Client
         2. Must end with suffix "ServerRpc"
         3. ServerRpc must be defined inside NetworkBehaviour
         4. Must be attached to a GameObject within a Network Object
@@ -84,14 +87,12 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
     /* ClientRPC:
-        1. Must be called from Server. A Client cannot call a ClientRPC
-        2. Run on Client
+        1. Run only on Client
+        2. Calls only from Server
         3. Use ClientRPC when Server -> One/Multiple Clients
     */
     [ClientRpc]
     private void TestClientRpc(ClientRpcParams clientRpcParams){ 
         Debug.Log("TestClientRpc");
     }
-
-
 }
