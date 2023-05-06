@@ -88,9 +88,9 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
 
-    void CreateBullet(bool isHost){
+    void CreateBullet(int senderClientId){
         spawnedObjectTransform = Instantiate(bulletTransform, transform.position, new Quaternion(0,0,0,0));
-        if (IsHost){
+        if (senderClientId == 0){
             spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
         }
     }
@@ -100,15 +100,16 @@ public class PlayerNetwork : NetworkBehaviour
     [ServerRpc]
     void SpawnBulletOnServerRpc(ServerRpcParams serverRpcParams){
         Debug.Log("Calling ServerRpc by: " + OwnerClientId + "; SenderClientID: " + serverRpcParams.Receive.SenderClientId);
-        CreateBullet(IsHost); // Create on server/host only (no client)
-        
-        SpawnBulletOnClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}}); // Render client
+        int sId = (int)serverRpcParams.Receive.SenderClientId;
+        CreateBullet(sId); // Create on server/host only (no client)
+
+        SpawnBulletOnClientRpc(sId, new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}}); // Render client
     }
 
     [ClientRpc]
-    void SpawnBulletOnClientRpc(ClientRpcParams clientRpcParams){
+    void SpawnBulletOnClientRpc(int senderId, ClientRpcParams clientRpcParams){
         if (!IsHost){
-            CreateBullet(false); // Create on client only (no host)
+            CreateBullet(senderId); // Create on client only (no host)
         }
         // if (OwnerClientId == 0){
         //     spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
