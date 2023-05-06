@@ -48,21 +48,21 @@ public class PlayerNetwork : NetworkBehaviour
         // (e.g. Client1 is not the owner of Client2's character)
         if (!IsOwner) return; 
 
-        if (Input.GetKeyDown(KeyCode.Alpha1)){ // SERVER ACTS
-            TestServerRpc(new ServerRpcParams());
+        if (Input.GetKeyDown(KeyCode.T)){
+            SpawnBulletOnServerRpc(new ServerRpcParams());
         }
-        if (Input.GetKeyDown(KeyCode.Alpha2)){ // CLIENT ACTS
-            TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
-        }
+        // if (Input.GetKeyDown(KeyCode.Alpha1)){ // SERVER ACTS
+        //     TestServerRpc(new ServerRpcParams());
+        // }
+        // if (Input.GetKeyDown(KeyCode.Alpha2)){ // CLIENT ACTS
+        //     TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
+        // }
         // if (Input.GetKeyDown(KeyCode.Alpha3)){
         //     RandomizeInt();
         // }
-        if (Input.GetKeyDown(KeyCode.T)){
-            SpawnBulletOnServerServerRpc(new ServerRpcParams());
-        }
-        if (Input.GetKeyDown(KeyCode.R)){
-            Destroy(spawnedObjectTransform.gameObject); // Destroy on both local/network
-        }
+        // if (Input.GetKeyDown(KeyCode.R)){
+        //     Destroy(spawnedObjectTransform.gameObject); // Destroy on both local/network
+        // }
 
         Movement();
     }
@@ -88,16 +88,31 @@ public class PlayerNetwork : NetworkBehaviour
     }
 
 
+    void CreateBullet(bool isHost){
+        spawnedObjectTransform = Instantiate(bulletTransform, transform.position, new Quaternion(0,0,0,0));
+        if (IsHost){
+            spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
+        }
+    }
+
     // ===================================================================
 
     [ServerRpc]
-    void SpawnBulletOnServerServerRpc(ServerRpcParams serverRpcParams){
-        spawnedObjectTransform = Instantiate(bulletTransform); // Shows on local only
-        spawnedObjectTransform.GetComponent<NetworkObject>().Spawn(true); // Spawn over network
-        spawnedObjectTransform.position = gameObject.transform.position;
-        if (serverRpcParams.Receive.SenderClientId == 0){
-            spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
+    void SpawnBulletOnServerRpc(ServerRpcParams serverRpcParams){
+        Debug.Log("Calling ServerRpc by: " + OwnerClientId + "; SenderClientID: " + serverRpcParams.Receive.SenderClientId);
+        CreateBullet(IsHost); // Create on server/host only (no client)
+        
+        SpawnBulletOnClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}}); // Render client
+    }
+
+    [ClientRpc]
+    void SpawnBulletOnClientRpc(ClientRpcParams clientRpcParams){
+        if (!IsHost){
+            CreateBullet(false); // Create on client only (no host)
         }
+        // if (OwnerClientId == 0){
+        //     spawnedObjectTransform.GetChild(0).GetComponent<MeshRenderer>().material.color = Color.red;
+        // }
     }
 
     // ===================================================================
