@@ -41,12 +41,13 @@ public class PlayerNetwork : NetworkBehaviour
     {
         // Avoid controlling other "Player" prefabs that doesn't belong to this script
         if (!IsOwner) return; 
-        if (Input.GetKeyDown(KeyCode.T))
+        if (Input.GetKeyDown(KeyCode.T)){
             // TestServerRpc(new ServerRpcParams());
 
             // TargetClientIds: Client(s) to send the data to
             TestClientRpc(new ClientRpcParams { Send = new ClientRpcSendParams {TargetClientIds = new List<ulong> {0,1}}});
             // RandomizeInt();
+        }
         Movement();
     }
 
